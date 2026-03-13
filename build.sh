@@ -7,6 +7,7 @@ TOOLCHAIN=aarch64-linux-gnu-
 # Default selection
 VERSION=${VERSION:-2025}
 VARIANT=${VARIANT:-default}
+FSTHEME=${FSTHEME:-new}
 fixedparts=${FIXED_MTDPARTS:-1}
 multilayout=${MULTI_LAYOUT:-0}
 simg=${SIMG:-0}
@@ -65,6 +66,10 @@ if [ -z "$BOARD" ]; then
 	exit 1
 fi
 
+echo "======================================================================"
+echo "Checking environment..."
+echo "======================================================================"
+
 echo "Trying python3..."
 command -v python3
 [ "$?" != "0" ] && { echo "Error: Python3 is not installed on this system."; exit 0; }
@@ -73,8 +78,6 @@ echo "Trying cross compiler..."
 command -v "${TOOLCHAIN}gcc"
 [ "$?" != "0" ] && { echo "${TOOLCHAIN}gcc not found!"; exit 0; }
 export CROSS_COMPILE="$TOOLCHAIN"
-
-echo "======================================================================"
 
 # Config Dir
 CONFIGS_DIR_DEFAULT="configs"
@@ -229,6 +232,10 @@ for file in "$ATF_CFG_PATH" "$UBOOT_CFG_PATH"; do
 	fi
 done
 
+echo "======================================================================"
+echo "Configuration:"
+echo "======================================================================"
+
 echo "VERSION: $VERSION"
 echo "VARIANT: $VARIANT"
 echo "TARGET: ${SOC}_${BOARD}"
@@ -236,10 +243,13 @@ echo "ATF Dir: $ATF_DIR"
 echo "U-Boot Dir: $UBOOT_DIR"
 echo "ATF CFG: $ATF_CFG_PATH"
 echo "U-Boot CFG: $UBOOT_CFG_PATH"
-echo "Features: fixed-mtdparts: $fixedparts, multi-layout: $multilayout, simg: $simg"
+echo "Features: fixed-mtdparts: $fixedparts, multi-layout: $multilayout"
+echo "Failsafe: theme: $FSTHEME, simg support: $simg"
+
+echo "======================================================================"
+echo "Build u-boot..."
 echo "======================================================================"
 
-echo "Build u-boot..."
 rm -f "$UBOOT_DIR/u-boot.bin"
 cp -f "$UBOOT_CFG_PATH" "$UBOOT_DIR/.config"
 if [ "$fixedparts" = "1" ]; then
@@ -251,10 +261,22 @@ if [ -n "$VARIANT" ]; then
 	echo "Build u-boot with variant: $VARIANT"
 	echo "CONFIG_WEBUI_FAILSAFE_BUILD_VARIANT=\"$(echo "$VARIANT" | tr '[:upper:]' '[:lower:]')\"" >> "$UBOOT_DIR/.config"
 fi
+if [ "$FSTHEME" = "new" ] || [ "$FSTHEME" = "NEW" ]; then
+	echo "Build u-boot with new fstheme!"
+fi
+if [ "$FSTHEME" = "gl" ] || [ "$FSTHEME" = "GL" ]; then
+	echo "Build u-boot with gl fstheme!"
+	echo "CONFIG_WEBUI_FAILSAFE_UI_GL=y" >> "$UBOOT_DIR/.config"
+fi
+if [ "$FSTHEME" = "mtk" ] || [ "$FSTHEME" = "MTK" ]; then
+	echo "Build u-boot with mtk fstheme!"
+	echo "CONFIG_WEBUI_FAILSAFE_UI_MTK=y" >> "$UBOOT_DIR/.config"
+fi
 if [ "$simg" = "1" ]; then
 	echo "Build u-boot with failsafe simg support!"
 	echo "CONFIG_WEBUI_FAILSAFE_SIMG=y" >> "$UBOOT_DIR/.config"
 fi
+
 make -C "$UBOOT_DIR" olddefconfig
 make -C "$UBOOT_DIR" clean
 make -C "$UBOOT_DIR" -j $(nproc) all
@@ -266,7 +288,10 @@ else
 	exit 1
 fi
 
+echo "======================================================================"
 echo "Build atf..."
+echo "======================================================================"
+
 if [ -e "$ATF_DIR/makefile" ]; then
 	ATF_MKFILE="makefile"
 else
@@ -290,6 +315,10 @@ if [ -n "$ATF_CFG_STAGE_FILE" ] && [ -f "$ATF_CFG_STAGE_FILE" ]; then
 	rm -f "$ATF_CFG_STAGE_FILE"
 fi
 
+echo "======================================================================"
+echo "Copying output files..."
+echo "======================================================================"
+
 mkdir -p "output"
 if [ -f "$ATF_DIR/build/${SOC}/release/fip.bin" ]; then
 	FIP_NAME="fip-${SOC}_${BOARD}_${VERSION}-${AUTHOR}-dhcpd"
@@ -307,8 +336,10 @@ if [ -f "$ATF_DIR/build/${SOC}/release/fip.bin" ]; then
 	fi
 	FIP_MD5=$(md5sum "$ATF_DIR/build/${SOC}/release/fip.bin" | awk '{print $1}')
 	FIP_NAME="${FIP_NAME}_md5-${FIP_MD5}"
+	echo "fip.bin md5sum: $FIP_MD5"
 	cp -f "$ATF_DIR/build/${SOC}/release/fip.bin" "output/${FIP_NAME}.bin"
-	echo "$FIP_NAME build done"
+	echo "fip-${SOC}_${BOARD}_${VERSION} build done"
+	echo "Output: output/${FIP_NAME}.bin"
 else
 	echo "fip build fail!"
 	exit 1
@@ -324,8 +355,10 @@ if grep -Eq "(^_|CONFIG_TARGET_ALL_NO_SEC_BOOT=y)" "$ATF_CFG_PATH"; then
 		fi
 		BL2_MD5=$(md5sum "$ATF_DIR/build/${SOC}/release/bl2.img" | awk '{print $1}')
 		BL2_NAME="${BL2_NAME}_md5-${BL2_MD5}"
-		cp -f "$ATF_DIR/build/${SOC}/release/bl2.img" "output/${BL2_NAME}.bin"
-		echo "$BL2_NAME build done"
+		echo "bl2.img md5sum: $BL2_MD5"
+		cp -f "$ATF_DIR/build/${SOC}/release/bl2.img" "output/${BL2_NAME}.img"
+		echo "bl2-${SOC}_${BOARD}_${VERSION} build done"
+		echo "Output: output/${BL2_NAME}.img"
 	else
 		echo "bl2 build fail!"
 		exit 1
