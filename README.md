@@ -68,9 +68,6 @@ BOARD=ruijie_rg-x60-new MULTI_LAYOUT=1 SIMG=1 ./build.sh
 
 | Version | ATF | UBOOT |
 | --- | --- | --- |
-| 2022 | 20220606-637ba581b | 20220606 |
-| 2023 | 20231013-0ea67d76a | 20230718-09eda825 |
-| 2024 | 20240117-bacca82a8 | 20230718-09eda825 |
 | 2025 | 20250711 | 20250711 |
 | SP1 | 20241017-bacca82a8 | 20250711 |
 
@@ -301,15 +298,17 @@ fw_setenv failsafe 1 # Reboot to failsafe mode in next boot
 
 ## Other Version Previews
 
+Now U-Boot 2022 and 2023 is **not maintained**(include Version2022/2023/2024).
+
+**You can find old versions in the "old-version" branch, but they may have some issues, so it's recommended to use U-Boot 2025 for better experience.**
+
 - <https://cmi.hanwckf.top/p/mt798x-uboot-usage>
 
-Now U-Boot 2022 and 2023 is **not maintained**(include Version2022/2023/2024), please use U-Boot 2025 if you want to use the latest features and improvements.
-
-> Version-2022 WEB UI
+- Version-2022 WEB UI
 
 ![Version-2022](document/pictures/uboot-2022.png)
 
-> Version-2023/2024 WEB UI
+- Version-2023/2024 WEB UI
 
 ![Version-2023/2024](document/pictures/uboot-2023.png)
 
